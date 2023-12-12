@@ -2,6 +2,7 @@ package hr.mbehin.socialMediaProject.service;
 
 import hr.mbehin.socialMediaProject.dto.CommentDTO;
 import hr.mbehin.socialMediaProject.dto.UserDTO;
+import hr.mbehin.socialMediaProject.exception.PostNotFoundException;
 import hr.mbehin.socialMediaProject.model.Comment;
 import hr.mbehin.socialMediaProject.model.Post;
 import hr.mbehin.socialMediaProject.model.User;
@@ -33,11 +34,11 @@ public class CommentService {
                 })
                 .collect(Collectors.toList());
     }
-    public Comment createComment(Long postId, CommentDTO commentDTO){
+    public void createComment(Long postId, CommentDTO commentDTO){
         Optional<Post> postOptional = postRepository.findById(postId);
 
         Post post = postOptional.orElseThrow(
-                () -> new IllegalArgumentException("Post with id " + postId + "has not been found."));
+                () -> new PostNotFoundException("Post with id " + postId + "has not been found."));
 
         User user = userRepository.findByUsername(commentDTO.getUser().getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("Username was not found."));
@@ -45,8 +46,6 @@ public class CommentService {
         Comment comment = mapDTOtoComment(commentDTO, post, user);
 
         commentRepository.save(comment);
-
-        return comment;
     }
 
     public void deleteComment(Long id){

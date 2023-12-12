@@ -1,62 +1,56 @@
 package hr.mbehin.socialMediaProject.controller;
 
-import hr.mbehin.socialMediaProject.dto.CommentDTO;
-import hr.mbehin.socialMediaProject.dto.PostDTO;
-import hr.mbehin.socialMediaProject.model.Comment;
-import hr.mbehin.socialMediaProject.model.Post;
-import hr.mbehin.socialMediaProject.service.CommentService;
+import hr.mbehin.socialMediaProject.dto.GroupDTO;
 import hr.mbehin.socialMediaProject.service.GroupService;
-import hr.mbehin.socialMediaProject.service.PostService;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 @RestController
-@RequestMapping("/g")
-@AllArgsConstructor
-//@CrossOrigin(origins = "http://localhost:4200")
+@RequestMapping("/api/groups")
+@RequiredArgsConstructor
 public class GroupController {
 
     private final GroupService groupService;
-    private final PostService postService;
-    private final CommentService commentService;
 
-    @GetMapping("/{groupName}")
-    public List<Post> showPosts(@PathVariable String groupName){
-        List<Post> list = groupService.showPosts(groupName);
-        list.sort(Comparator.comparing(Post::getDateCreated).reversed());
-        return list;
+    // get mapping
+
+    @GetMapping("/getAll")
+    public ResponseEntity<List<GroupDTO>> getAllGroups(){
+        return ResponseEntity.status(HttpStatus.OK).body(groupService.getAllGroups());
     }
 
-    @GetMapping("/{groupName}/top/")
-    public List<Post> showTopPosts(@PathVariable String groupName,
-                                  @RequestParam(value = "t", defaultValue = "day") String param){
-        return postService.showTopPosts(groupService.getGroupByName(groupName), param);
-    }
-    @GetMapping("/{groupName}/post/{id}")
-    public Post showPost(@PathVariable Long id, @PathVariable String groupName){
-        Post post = groupService.showPostByPostIdAndGroupName(id, groupName);
-        return post;
+    @GetMapping("/getFollowedGroups")
+    public ResponseEntity<Set<GroupDTO>> getFollowedGroups(){
+        return ResponseEntity.status(HttpStatus.OK).body(groupService.getFollowedGroups());
     }
 
-    @PostMapping("/{groupName}/post/{id}")
-    public ResponseEntity<Comment> addComment(@PathVariable("id") Long postId, @RequestBody CommentDTO commentDTO){
-        return new ResponseEntity<>(commentService.createComment(postId, commentDTO), HttpStatus.CREATED);
+    @GetMapping("/getGroupByName/{groupName}")
+    public ResponseEntity<GroupDTO> getGroupByName(@PathVariable String groupName){
+        return ResponseEntity.status(HttpStatus.OK).body(groupService.getGroupDTOByName(groupName));
     }
 
-    @PostMapping("/{groupName}/createPost")
-    public ResponseEntity<Post> createPost(@PathVariable String groupName, @RequestBody PostDTO postDTO){
-        Post post = groupService.createPost(groupName, postDTO);
-        return new ResponseEntity<>(post, HttpStatus.CREATED);
+    // post mapping
+
+    @PostMapping("/createGroup")
+    public ResponseEntity<Void> createGroup(@RequestBody GroupDTO groupDTO){
+        groupService.createGroup(groupDTO);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/{groupName}/deletePost/{id}")
-    public void deletePostById(@PathVariable("id") Long id){
-        postService.deletePostById(id);
+    @PostMapping("/followGroup")
+    public ResponseEntity<Void> followGroup(@RequestBody GroupDTO groupDTO){
+        groupService.followGroup(groupDTO.getId());
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @PostMapping("/unfollowGroup")
+    public ResponseEntity<Void> unfollowGroup(@RequestBody GroupDTO groupDTO){
+        groupService.unfollowGroup(groupDTO.getId());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
 }

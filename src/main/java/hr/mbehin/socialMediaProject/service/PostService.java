@@ -5,6 +5,9 @@ import hr.mbehin.socialMediaProject.dto.CommentDTO;
 import hr.mbehin.socialMediaProject.dto.GroupDTO;
 import hr.mbehin.socialMediaProject.dto.PostDTO;
 import hr.mbehin.socialMediaProject.dto.UserDTO;
+import hr.mbehin.socialMediaProject.exception.GroupNotFoundException;
+import hr.mbehin.socialMediaProject.exception.PostNotFoundException;
+import hr.mbehin.socialMediaProject.exception.UserNotFoundException;
 import hr.mbehin.socialMediaProject.model.Group;
 import hr.mbehin.socialMediaProject.model.Post;
 import hr.mbehin.socialMediaProject.model.User;
@@ -24,16 +27,17 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class PostService {
+
     private final PostRepository postRepository;
+    private final GroupRepository groupRepository;
     private final UserRepository userRepository;
     private final AuthService authService;
-    public void save(Post post){
-        postRepository.save(post);
-    }
 
     public void deletePostById(Long id){postRepository.deletePostById(id);}
 
-    public List<Post> showTopPosts(Group group, String param) {
+    public List<PostDTO> showTopPosts(String groupName, String param) {
+        Group group = groupRepository.findByName(groupName)
+                .orElseThrow(() -> new GroupNotFoundException("Group with name " + groupName + " has not been found."));
 
         List<Post> posts;
         Instant date = Instant.now().truncatedTo(ChronoUnit.DAYS);
@@ -65,7 +69,7 @@ public class PostService {
             default:posts = postRepository.findAllByDateCreatedAfterAndAndGroup_Id(date,group.getId());;
         }
 
-        return posts;
+        return posts.stream().map(this::mapPostToDTO).collect(Collectors.toList());
     }
 
     public List<PostDTO> getUserPosts(Long id){
@@ -84,6 +88,25 @@ public class PostService {
         posts.sort(Comparator.comparing(Post::getDateCreated).reversed());
 
         return posts.stream().map(this::mapPostToDTO).collect(Collectors.toList());
+    }
+
+    public List<PostDTO> getPostsByGroupName(String groupName){
+        Group group = groupRepository.findByName(groupName)
+                .orElseThrow(() -> new GroupNotFoundException("Group with name " + groupName + " has not been found."));
+
+        return postRepository.findAllByGroup_Id(group.getId()).stream()
+                    .map(this::mapPostToDTO)
+                    .collect(Collectors.toList());
+    }
+
+    public PostDTO getPostById(Long id){
+        Post post = postRepository.findById(id)
+                .orElseThrow(()->new PostNotFoundException("Post with id " + id + " has not been found."));
+        return mapPostToDTO(post);
+    }
+
+    public void createPost(PostDTO postDTO) {
+        postRepository.save(mapDTOtoPost(postDTO));
     }
 
     PostDTO mapPostToDTO(Post post){
@@ -108,4 +131,18 @@ public class PostService {
 
         return new PostDTO(post.getId(), post.getTitle(), post.getText(), post.getDateCreated(), post.getUpvotes(), commentDTO, groupDTO, userDTO);
     }
+
+    Post mapDTOtoPost(PostDTO postDTO){
+
+        Long groupId = postDTO.getGroup().getId();
+        Long userId = postDTO.getUser().getId();
+
+        return new Post(postDTO.getTitle(), postDTO.getText(),
+                groupRepository.findById(groupId)
+                        .orElseThrow(() -> new GroupNotFoundException("Group with id " + postDTO.getGroup().getId() + " has not been found.")),
+                userRepository.findById(userId)
+                        .orElseThrow(() -> new UserNotFoundException("User with id " + postDTO.getUser().getId() + " has not been found.")),
+                postDTO.getUpvotes());
+    }
+
 }

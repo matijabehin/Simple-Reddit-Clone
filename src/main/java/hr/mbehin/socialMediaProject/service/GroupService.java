@@ -34,26 +34,6 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
-    public List<Post> showPosts(String groupName){
-        Optional<Group> groupOptional = groupRepository.findByName(groupName);
-        Group group = groupOptional.orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupName));
-
-        return postRepository.findAllByGroup_Id(group.getId());
-    }
-
-    public Post createPost(String groupName, PostDTO postDTO) {
-        Optional<Group> groupOptional = groupRepository.findByName(groupName);
-        Group group = groupOptional.orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupName));
-
-        User user = userRepository.findByUsername(postDTO.getUser().getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User was not found."));
-
-        Post post = new Post(postDTO.getTitle(), postDTO.getText(), group, user, postDTO.getUpvotes());
-
-        postRepository.save(post);
-
-        return post;
-    }
     public void followGroup(Long groupId){
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("No group has been found."));
@@ -86,22 +66,11 @@ public class GroupService {
         groupRepository.save(group);
     }
 
-    public Group getGroupByName(String groupName) {
-        Optional<Group> groupOptional = groupRepository.findByName(groupName);
-        return groupOptional
-                .orElseThrow(() -> new IllegalArgumentException("No group has been found with name " + groupName));
-    }
     public GroupDTO getGroupDTOByName(String groupName) {
         Optional<Group> groupOptional = groupRepository.findByName(groupName);
         return groupOptional
                 .map((group) -> new GroupDTO(group.getId(), group.getName(), group.getDescription()))
                 .orElseThrow(() -> new IllegalArgumentException("No group has been found with name " + groupName));
-    }
-
-    public Post showPostByPostIdAndGroupName(Long id, String groupName) {
-        Optional<Post> postOptional = postRepository.findByIdAndAndGroup_Name(id, groupName);
-        return postOptional.orElseThrow(() ->
-                new IllegalArgumentException("No post has been found with id " + id + " in /g/" + groupName));
     }
 
     public Set<GroupDTO> getFollowedGroups(){
